@@ -1,0 +1,57 @@
+from web3 import Web3
+from zksync2.core.types import ZkSyncTx
+from zksync2.manage.wallet import ZkSyncWallet
+
+# Replace with your own configuration
+provider_url = 'https://rpc.zksync.io'  # Zksync Era RPC URL
+private_key = 'YOUR_PRIVATE_KEY'
+contract_address = 'CONTRACT_ADDRESS'
+contract_abi = [
+    # Replace with the actual ABI of the contract
+    {
+        "constant": False,
+        "inputs": [],
+        "name": "claim",
+        "outputs": [{"name": "", "type": "bool"}],
+        "payable": False,
+        "stateMutability": "nonpayable",
+        "type": "function"
+    }
+]
+
+# Initialize web3 and wallet
+web3 = Web3(Web3.HTTPProvider(provider_url))
+wallet = ZkSyncWallet(web3, private_key)
+
+# Initialize contract instance
+contract = web3.eth.contract(address=contract_address, abi=contract_abi)
+
+# Function to claim tokens
+def claim_tokens():
+    try:
+        nonce = web3.eth.get_transaction_count(wallet.address)
+        gas_price = web3.eth.gas_price
+
+        # Prepare the transaction
+        tx = contract.functions.claim().buildTransaction({
+            'chainId': 280,  # Zksync Era chain ID, adjust if needed
+            'gas': 500000,  # Adjust gas limit as needed
+            'gasPrice': gas_price,
+            'nonce': nonce,
+        })
+
+        # Sign the transaction
+        signed_tx = web3.eth.account.sign_transaction(tx, private_key=private_key)
+
+        # Send the transaction
+        tx_hash = web3.eth.send_raw_transaction(signed_tx.rawTransaction)
+
+        # Wait for the transaction receipt
+        receipt = web3.eth.wait_for_transaction_receipt(tx_hash)
+
+        print('Tokens claimed successfully:', receipt)
+    except Exception as e:
+        print('Error claiming tokens:', e)
+
+# Execute the function
+claim_tokens()
